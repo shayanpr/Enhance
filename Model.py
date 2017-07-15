@@ -9,11 +9,13 @@ from keras.callbacks import TensorBoard
 import os
 
 from keras.models import Sequential, Model, load_model, save_model
-from keras.layers import Dense, Activation, Dropout, Flatten, Input
+from keras.layers import Dense, Activation, Dropout, Flatten, Input, Merge, merge
 from keras.layers import Conv2D, SeparableConv2D
 from keras.layers import MaxPooling2D, UpSampling2D
 from keras.layers.merge import Concatenate
-
+from keras import regularizers
+from keras.constraints import max_norm
+from keras.constraints import min_max_norm
 
 
 
@@ -28,7 +30,7 @@ theShape2 = (32, 32, 1)
 def autoEncoderGen(path, input_shape=theShape):
     if os.path.exists(path):
         print('loading: ' + str(sorted(os.listdir('models/'))[-1]))
-        autoencoder = load_model(os.path.join('./models', sorted(os.listdir('models/'))[-1]))
+        autoencoder = load_model(os.path.join('models', sorted(os.listdir('models/'))[-1]))
         name = str(sorted(os.listdir('models/'))[-1])
         print('loaded: ' + name)
     else:
@@ -63,7 +65,7 @@ def autoEncoderGen(path, input_shape=theShape):
 def autoEncoderGen2(path, input_shape=theShape):
     if os.path.exists(path):
         print('loading: ' + str(sorted(os.listdir('models2/'))[-1]))
-        autoencoder = load_model(os.path.join('./models2', sorted(os.listdir('models2/'))[-1]))
+        autoencoder = load_model(os.path.join('models2', sorted(os.listdir('models2/'))[-1]))
         name = str(sorted(os.listdir('models2/'))[-1])
         print('loaded: ' + name)
     else:
@@ -71,14 +73,52 @@ def autoEncoderGen2(path, input_shape=theShape):
         print('Building a new model.')
         input_img = Input(shape=input_shape)  # adapt this if using `channels_first` image data format
 
-        x = UpSampling2D((4, 4))(input_img)
-        x = Conv2D(30, (2, 2), activation='relu', padding='same', kernel_initializer='glorot_normal')(x)
-        x = Conv2D(24, (2, 2), activation='relu', padding='same', kernel_initializer='glorot_normal')(x)
-        x = Conv2D(21, (3, 3), activation='relu', padding='same', kernel_initializer='glorot_normal')(x)
-        x = Conv2D(9, (5, 5), activation='relu', padding='same', kernel_initializer='glorot_normal')(x)
-        x = Conv2D(9, (7, 7), activation='relu', padding='same', kernel_initializer='glorot_normal')(x)
-        x = Conv2D(3, (9, 9), activation='relu', padding='same', kernel_initializer='glorot_normal')(x)
-        decoded = Conv2D(3, (3, 3), activation='relu', padding='same')(x)
+        residual = UpSampling2D((4, 4))(input_img)
+        x = Conv2D(42, (2, 2),
+                   activation='relu',
+                   padding='same',
+                   kernel_initializer='glorot_normal',
+                   use_bias=False)(residual)
+        x = Conv2D(3, (3, 3),
+                   activation='relu',
+                   padding='same',
+                   kernel_initializer='glorot_normal',
+                   kernel_regularizer=regularizers.l2(0.01),
+                   use_bias=False)(x)
+        l = merge([x, residual], mode='sum')
+        x = Conv2D(21, (3, 3),
+                   activation='relu',
+                   padding='same',
+                   kernel_initializer='glorot_normal',
+                   use_bias=False)(l)
+        x = Conv2D(21, (2, 2),
+                   activation='relu',
+                   padding='same',
+                   kernel_initializer='glorot_normal',
+                   use_bias=True)(x)
+        x = Conv2D(3, (3, 3),
+                   activation='relu',
+                   padding='same',
+                   kernel_initializer='glorot_normal',
+                   use_bias=True)(x)
+        l = merge([x, residual], mode='sum')
+        x = Conv2D(21, (3, 3),
+                   activation='relu',
+                   padding='same',
+                   kernel_initializer='glorot_normal',
+                   use_bias=False)(l)
+        x = Conv2D(6, (3, 3),
+                   activation='relu',
+                   padding='same',
+                   kernel_initializer='glorot_normal',
+                   use_bias=True)(x)
+        x = Conv2D(6, (3, 3),
+                   activation='relu',
+                   padding='same',
+                   kernel_initializer='glorot_normal',
+                   use_bias=True)(x)
+        decoded = Conv2D(3, (3, 3), activation='relu',
+                         padding='same', use_bias=True)(x)
 
         autoencoder = Model(input_img, decoded)
         autoencoder.compile(optimizer='adam', loss='mean_absolute_error')
@@ -86,7 +126,7 @@ def autoEncoderGen2(path, input_shape=theShape):
         name = 'autoencoderV.h5'
     eye_temp = name.replace('.h5', '')
     try:
-        eye = int(eye_temp.replace('autoencoderV', '')) - 10000000
+        eye = int(eye_temp.replace('autoencoderV', '')) - 10000000 +1
     except ValueError:
         eye = 0
 
