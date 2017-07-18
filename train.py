@@ -27,7 +27,7 @@ autoencoder, autoencoder_name, eye = autoEncoderGen2('models2/autoencoder.h5')
 print(autoencoder.summary())
 
 
-gen = Picgenerator(directory='./256_ObjectCategories/', batch_size=model_batch, target=imSize)
+gen = Picgenerator(directory='./Data/', batch_size=model_batch, target=imSize)
 print('The type is: ', type(gen))
 # chkpnt = ModelCheckpoint()
 
