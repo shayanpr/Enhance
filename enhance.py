@@ -16,6 +16,8 @@ from scipy.misc.pilutil import imresize
 from Model import theShape, imSize
 import glob
 
+os.makedirs('./models2', exist_ok=True)
+
 
 def picEnhance(file_name, autoencoder, shape=theShape, F = 4, save_path="enhanced"):
 

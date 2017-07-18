@@ -25,6 +25,8 @@ model_batch = 150
 imSize = (128, 128)
 theShape = (32, 32, 3)
 theShape2 = (32, 32, 1)
+dname = 'models2'
+os.makedirs('./models2', exist_ok=True)
 
 
 def autoEncoderGen(path, input_shape=theShape):
@@ -73,24 +75,45 @@ def autoEncoderGen2(path, input_shape=theShape):
         print('Building a new model.')
         input_img = Input(shape=input_shape)  # adapt this if using `channels_first` image data format
 
-        residual = UpSampling2D((4, 4))(input_img)
+        residual = UpSampling2D((2, 2))(input_img)
         x = Conv2D(42, (2, 2),
                    activation='relu',
                    padding='same',
                    kernel_initializer='glorot_normal',
                    use_bias=False)(residual)
-        x = Conv2D(3, (3, 3),
+        x = Conv2D(20, (3, 3),
                    activation='relu',
                    padding='same',
                    kernel_initializer='glorot_normal',
                    kernel_regularizer=regularizers.l2(0.01),
                    use_bias=False)(x)
-        l = merge([x, residual], mode='sum')
         x = Conv2D(21, (3, 3),
                    activation='relu',
                    padding='same',
                    kernel_initializer='glorot_normal',
-                   use_bias=False)(l)
+                   use_bias=False)(x)
+        x = Conv2D(21, (2, 2),
+                   activation='relu',
+                   padding='same',
+                   kernel_initializer='glorot_normal',
+                   use_bias=True)(x)
+        residual = UpSampling2D((2, 2))(x)
+        x = Conv2D(42, (2, 2),
+                   activation='relu',
+                   padding='same',
+                   kernel_initializer='glorot_normal',
+                   use_bias=False)(residual)
+        x = Conv2D(20, (3, 3),
+                   activation='relu',
+                   padding='same',
+                   kernel_initializer='glorot_normal',
+                   kernel_regularizer=regularizers.l2(0.01),
+                   use_bias=False)(x)
+        x = Conv2D(21, (3, 3),
+                   activation='relu',
+                   padding='same',
+                   kernel_initializer='glorot_normal',
+                   use_bias=False)(x)
         x = Conv2D(21, (2, 2),
                    activation='relu',
                    padding='same',
@@ -101,12 +124,11 @@ def autoEncoderGen2(path, input_shape=theShape):
                    padding='same',
                    kernel_initializer='glorot_normal',
                    use_bias=True)(x)
-        l = merge([x, residual], mode='sum')
         x = Conv2D(21, (3, 3),
                    activation='relu',
                    padding='same',
                    kernel_initializer='glorot_normal',
-                   use_bias=False)(l)
+                   use_bias=False)(x)
         x = Conv2D(6, (3, 3),
                    activation='relu',
                    padding='same',
